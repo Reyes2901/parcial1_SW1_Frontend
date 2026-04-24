@@ -1,52 +1,55 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LoginRequest, LoginResponse, User } from '../models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = `${environment.apiUrl}/auth`;
-  private currentUserSubject = new BehaviorSubject<LoginResponse | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
+  private currentUser$ = new BehaviorSubject<any>(null);
 
-  constructor(private http: HttpClient) {
-    const stored = localStorage.getItem('currentUser');
-    if (stored) {
-      this.currentUserSubject.next(JSON.parse(stored));
-    }
+  constructor(private http: HttpClient, private router: Router) {
+    const token = localStorage.getItem('jwt');
+    if (token) this.decodeAndSetUser(token);
   }
 
-  login(request: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, request).pipe(
-      tap(response => {
-        localStorage.setItem('currentUser', JSON.stringify(response));
-        localStorage.setItem('token', response.token);
-        this.currentUserSubject.next(response);
-      })
-    );
+  login(email: string, password: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/login`, { email, password })
+      .pipe(tap((res: any) => {
+        localStorage.setItem('jwt', res.token);
+        this.decodeAndSetUser(res.token);
+      }));
   }
 
   logout(): void {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
-    this.currentUserSubject.next(null);
+    localStorage.removeItem('jwt');
+    this.currentUser$.next(null);
+    this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return localStorage.getItem('jwt');
   }
 
-  getCurrentUser(): LoginResponse | null {
-    return this.currentUserSubject.value;
+  getCurrentUser(): Observable<any> {
+    return this.currentUser$.asObservable();
+  }
+
+  hasRole(role: string): boolean {
+    const user = this.currentUser$.getValue();
+    return user?.roles?.includes(role) ?? false;
   }
 
   isLoggedIn(): boolean {
     return !!this.getToken();
   }
 
-  hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === role;
+  private decodeAndSetUser(token: string): void {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      this.currentUser$.next(payload);
+    } catch {
+      this.logout();
+    }
   }
 }
