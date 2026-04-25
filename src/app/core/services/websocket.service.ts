@@ -18,6 +18,10 @@ export class WebSocketService {
   constructor(private auth: AuthService) {}
 
   connect(): void {
+    if (!this.auth.getToken()) {
+      console.log('⏭ WebSocket no conectado (sin token)');
+      return;  
+    }
     if (this.client?.connected) return;
 
     this.client = new Client({

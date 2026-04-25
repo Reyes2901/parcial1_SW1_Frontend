@@ -14,13 +14,14 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/login`, { email, password })
-      .pipe(tap((res: any) => {
+    return this.http.post(`${environment.apiUrl}/auth/login`, { 
+        username: email,  
+        password: password 
+    }).pipe(tap((res: any) => {
         localStorage.setItem('jwt', res.token);
         this.decodeAndSetUser(res.token);
-      }));
-  }
-
+    }));
+}
   logout(): void {
     localStorage.removeItem('jwt');
     this.currentUser$.next(null);
@@ -28,7 +29,9 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('jwt');
+    return localStorage.getItem('token') 
+        || localStorage.getItem('jwt')
+        || sessionStorage.getItem('token');
   }
 
   getCurrentUser(): Observable<any> {

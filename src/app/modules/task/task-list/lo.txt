@@ -1,0 +1,6 @@
+<div style="padding: 20px; background: lightblue;">
+  <h1>TEST - TAREAS: {{ tasks.length }}</h1>
+  <div *ngFor="let task of tasks">
+    <p>{{ task.nodeLabel }} - {{ task.clientName }}</p>
+  </div>
+</div>
