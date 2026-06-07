@@ -11,7 +11,14 @@ export class RoleGuard implements CanActivate {
     if (this.authService.hasRole(expectedRole)) {
       return true;
     }
-    this.router.navigate(['/auth/login']);
+    // Redirect unauthorized users to their role-appropriate home
+    if (this.authService.hasRole('CLIENT') || this.authService.hasRole('CLIENTE')) {
+      this.router.navigate(['/workflow/mis-solicitudes']);
+    } else if (this.authService.hasRole('FUNCIONARIO') || this.authService.hasRole('EMPLOYEE')) {
+      this.router.navigate(['/tasks']);
+    } else {
+      this.router.navigate(['/login']);
+    }
     return false;
   }
 }

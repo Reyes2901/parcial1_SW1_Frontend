@@ -1,0 +1,45 @@
+Actúa como un experto en bpmn-js, Canvas de bajo nivel y Angular. Tenemos un error crítico que hace colapsar el lienzo colaborativo. 
+
+Analizando los logs de la consola, el sistema arroja de forma masiva:
+"TypeError: Cannot read properties of null (reading 'children') at MoveShapeHandler.execute" y "BpmnOrderingProvider.getOrdering". Además, la base de datos se inunda de peticiones PUT continuamente cada 3 segundos.
+
+Esto ocurre porque `modeling.moveElements()` altera el `commandStack`, disparando eventos locales en el segundo usuario, rompiendo las jerarquías de padres/hijos y causando un bucle infinito de autosave.
+
+Reescribe las funciones de sincronización remota en `diagram-editor.component.ts` aplicando la siguiente reingeniería:
+
+---
+
+### 🛠️ PASO 1: Corrección de `applyRemoteDrag` (Manipulación Gráfica Directa)
+Modifica la función encargada de procesar el evento remoto `ELEMENT_DRAG`. 
+1. **PROHIBIDO** usar `modeling.moveElements`, `modeling.moveShape` o cualquier método del servicio `Modeling` durante el arrastre en tiempo real.
+2. Utiliza el servicio `ElementRegistry` y modifica directamente las propiedades de geometría del objeto en memoria para evitar que toque el `commandStack`.
+3. Fuerza la actualización visual del SVG usando el renderizador nativo de bpmn-js.
+
+Implementa la lógica de la siguiente manera:
+```typescript
+applyRemoteDrag(elementId: string, geometry: { x: number, y: number }) {
+  const elementRegistry = this.bpmnModeler.get('elementRegistry');
+  const canvas = this.bpmnModeler.get('canvas');
+  
+  const element = elementRegistry.get(elementId);
+  if (!element) return;
+
+  // 1. Modificar coordenadas absolutas directamente en el objeto de datos interno
+  element.x = geometry.x;
+  element.y = geometry.y;
+
+  // 2. Si el elemento tiene conexiones entrantes o salientes, recalcular sus waypoints visuales de forma básica
+  // para que las flechas sigan al nodo de forma suave sin romper las reglas del negocio
+  if (element.incoming) {
+    element.incoming.forEach((conn: any) => {
+      if (conn.waypoints && conn.waypoints.length > 0) {
+        const lastWaypoint = conn.waypoints[conn.waypoints.length - 1];
+        lastWaypoint.x = geometry.x + (element.width / 2); // Ajuste al centro aproximado o bBox
+        lastWaypoint.y = geometry.y + (element.height / 2);
+      }
+    });
+  }
+
+  // 3. Forzar al renderizador gráfico de bpmn-js a redibujar la posición del elemento en el DOM del SVG
+  elementRegistry.updateGraphics(element, true);
+}

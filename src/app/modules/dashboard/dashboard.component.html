@@ -1,0 +1,319 @@
+<div class="dash-page">
+
+  <!-- ══════ TOP BAR ══════ -->
+  <header class="dash-header">
+    <div class="dash-header-left">
+      <p class="dash-eyebrow">Admin Control Center</p>
+      <h1 class="dash-title">Workflow Operations</h1>
+    </div>
+    <div class="dash-header-right">
+      <div class="dash-stat" *ngIf="!isLoading">
+        <span class="dash-stat-val">{{ adminStats.completionRate | number:'1.0-1' }}%</span>
+        <span class="dash-stat-lbl">cumplimiento</span>
+      </div>
+      <div class="dash-stat" *ngIf="!isLoading">
+        <span class="dash-stat-val">{{ adminStats.avgResolutionHours | number:'1.0-1' }}h</span>
+        <span class="dash-stat-lbl">resolución prom.</span>
+      </div>
+      <div class="dash-header-actions">
+        <span class="refresh-ts">{{ refreshedAt | date:'HH:mm' }}</span>
+        <button class="btn-refresh" type="button" (click)="refresh()" [disabled]="isLoading">
+          <span [class.spin]="isLoading">↻</span>
+          Refrescar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════ GLOBAL ERROR ══════ -->
+  <div class="global-empty" *ngIf="showGlobalEmpty && !isLoading">
+    <span class="empty-glyph">⚠</span>
+    <h2>Sin datos disponibles</h2>
+    <p>No se pudieron cargar datos primarios ni de respaldo.</p>
+    <button class="btn-primary" type="button" (click)="refresh()">Reintentar</button>
+  </div>
+
+  <ng-container *ngIf="!showGlobalEmpty || isLoading">
+
+    <!-- ══════ KPI ROW ══════ -->
+    <section class="kpi-row">
+      <ng-container *ngIf="widgetState.kpi.loading">
+        <div class="kpi-card skeleton" *ngFor="let n of [1,2,3,4]"></div>
+      </ng-container>
+
+      <ng-container *ngIf="!widgetState.kpi.loading && !widgetState.kpi.empty">
+        <article
+          class="kpi-card"
+          *ngFor="let card of kpiCards"
+          [class.kpi-card--alert]="card.key === 'overdue' && card.value > 0">
+          <div class="kpi-top">
+            <span class="kpi-icon">{{ kpiIcons[card.key] || '◆' }}</span>
+            <span class="kpi-badge" *ngIf="card.key === 'overdue' && card.value > 0">Atención</span>
+            <span class="kpi-badge kpi-badge--ok" *ngIf="card.key === 'overdue' && card.value === 0">OK</span>
+          </div>
+          <p class="kpi-val">{{ card.value }}</p>
+          <p class="kpi-lbl">{{ card.label }}</p>
+          <p class="kpi-helper">{{ card.helper }}</p>
+        </article>
+      </ng-container>
+
+      <div class="empty-state kpi-empty" *ngIf="!widgetState.kpi.loading && widgetState.kpi.empty">
+        Sin métricas disponibles.
+      </div>
+    </section>
+
+    <!-- ══════ PULSE STRIP ══════ -->
+    <section class="pulse-strip">
+      <span class="pulse-strip-label">Estado operativo</span>
+      <div class="pulse-items">
+        <ng-container *ngIf="widgetState.pulse.loading">
+          <div class="pulse-item-skel" *ngFor="let n of [1,2,3,4,5]"></div>
+        </ng-container>
+        <ng-container *ngIf="!widgetState.pulse.loading">
+          <div
+            class="pulse-item"
+            *ngFor="let p of pulseItems"
+            [class.pulse-item--alert]="p.highlight">
+            <span class="pulse-val">{{ p.value }}</span>
+            <span class="pulse-lbl">{{ p.label }}</span>
+            <span class="pulse-sub">{{ p.helper }}</span>
+          </div>
+        </ng-container>
+      </div>
+    </section>
+
+    <!-- ══════ MID GRID: Analytics + Bottlenecks ══════ -->
+    <div class="mid-grid">
+
+      <!-- Analytics -->
+      <section class="panel">
+        <div class="panel-hdr">
+          <div>
+            <h2 class="panel-title">Analítica operativa</h2>
+            <p class="panel-sub">Throughput diario y carga por área</p>
+          </div>
+          <span class="badge-degraded" *ngIf="widgetState.charts.degraded && !widgetState.charts.loading">Estimado</span>
+        </div>
+
+        <div class="skeleton-block" *ngIf="widgetState.charts.loading"></div>
+
+        <div class="charts-grid" *ngIf="!widgetState.charts.loading && !widgetState.charts.empty">
+          <!-- Throughput -->
+          <div class="chart-block">
+            <div class="chart-block-hdr">
+              <span class="chart-title">Throughput del día</span>
+              <span class="chart-rate">{{ adminStats.completionRate | number:'1.0-1' }}%</span>
+            </div>
+            <div class="bar-list">
+              <div class="bar-row" *ngFor="let slice of throughputSeries">
+                <div class="bar-meta">
+                  <span class="bar-lbl">{{ slice.label }}</span>
+                  <span class="bar-num">{{ slice.value }}</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill"
+                       [class.bar-fill--pos]="slice.tone === 'positive'"
+                       [class.bar-fill--warn]="slice.tone === 'warning'"
+                       [style.width]="throughputWidth(slice.value)">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Workload -->
+          <div class="chart-block" *ngIf="workloadSeries.length > 0">
+            <div class="chart-block-hdr">
+              <span class="chart-title">Carga por área</span>
+              <span class="chart-rate">Áreas activas</span>
+            </div>
+            <div class="bar-list">
+              <div class="bar-row" *ngFor="let pt of workloadSeries">
+                <div class="bar-meta">
+                  <span class="bar-lbl truncate">{{ pt.label }}</span>
+                  <span class="bar-num">{{ pt.value }}</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill--pos" [style.width]="workloadWidth(pt.value)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="!widgetState.charts.loading && widgetState.charts.empty">
+          Sin datos analíticos disponibles.
+        </div>
+      </section>
+
+      <!-- Bottlenecks -->
+      <section class="panel panel--tinted">
+        <div class="panel-hdr">
+          <div>
+            <h2 class="panel-title">Alertas y cuellos</h2>
+            <p class="panel-sub">Eventos críticos — atención inmediata</p>
+          </div>
+          <span class="badge-alert" *ngIf="!widgetState.bottlenecks.loading && bottleneckItems.length > 0">
+            {{ bottleneckItems.length }} activos
+          </span>
+        </div>
+
+        <div class="skeleton-block" *ngIf="widgetState.bottlenecks.loading"></div>
+
+        <div class="alert-list" *ngIf="!widgetState.bottlenecks.loading && !widgetState.bottlenecks.empty">
+          <div class="alert-item" *ngFor="let b of bottleneckItems">
+            <span class="alert-dot"></span>
+            <div class="alert-body">
+              <div class="alert-row1">
+                <span class="alert-node">{{ b.nodeLabel }}</span>
+                <span class="alert-mins">{{ b.overdueMinutes }} min</span>
+              </div>
+              <span class="alert-lane">{{ b.laneName }}</span>
+              <span class="alert-asn">↳ {{ b.assigneeId || 'Sin asignar' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state empty-ok" *ngIf="!widgetState.bottlenecks.loading && widgetState.bottlenecks.empty">
+          ✓ Sin cuellos de botella activos
+        </div>
+      </section>
+    </div>
+
+    <!-- ══════ BOTTOM GRID: Tasks + Sidebar Stack ══════ -->
+    <div class="bottom-grid">
+
+      <!-- Recent tasks table -->
+      <section class="panel">
+        <div class="panel-hdr">
+          <div>
+            <h2 class="panel-title">Tareas recientes</h2>
+            <p class="panel-sub">Seguimiento diario de tareas operativas</p>
+          </div>
+          <a routerLink="/tasks" class="btn-ghost">Ver todas →</a>
+        </div>
+
+        <div class="skeleton-block tall" *ngIf="widgetState.tasks.loading"></div>
+
+        <div class="tbl-wrap" *ngIf="!widgetState.tasks.loading && !widgetState.tasks.empty">
+          <table class="data-tbl">
+            <thead>
+              <tr>
+                <th>Tarea</th>
+                <th>Responsable</th>
+                <th>Estado</th>
+                <th>Vence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let task of recentTasks" [class.row--overdue]="task.isOverdue">
+                <td>
+                  <span class="cell-main">{{ task.title }}</span>
+                  <span class="chip-overdue" *ngIf="task.isOverdue">Vencida</span>
+                </td>
+                <td class="cell-muted">{{ task.assignee }}</td>
+                <td>
+                  <span class="status-pill"
+                        [class.sp--progress]="task.statusCode === 'IN_PROGRESS'"
+                        [class.sp--assigned]="task.statusCode === 'ASSIGNED'"
+                        [class.sp--done]="task.statusCode === 'COMPLETED' || task.statusCode === 'DONE'"
+                        [class.sp--rejected]="task.statusCode === 'REJECTED'">
+                    {{ task.statusLabel }}
+                  </span>
+                </td>
+                <td class="cell-mono">
+                  <ng-container *ngIf="task.dueAt">{{ task.dueAt | date:'dd/MM/yy' }}</ng-container>
+                  <span class="cell-muted" *ngIf="!task.dueAt">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty-state" *ngIf="!widgetState.tasks.loading && widgetState.tasks.empty">
+          Sin tareas recientes.
+        </div>
+      </section>
+
+      <!-- Right panel stack -->
+      <aside class="right-stack">
+
+        <!-- Quick actions -->
+        <section class="panel panel--compact">
+          <div class="panel-hdr">
+            <h2 class="panel-title">Acceso rápido</h2>
+          </div>
+          <div class="action-list">
+            <ng-container *ngFor="let action of quickActions; let i = index">
+              <a class="action-chip" *ngIf="!action.disabled" [routerLink]="action.route">
+                <span class="action-icon">{{ navIcons[i] }}</span>
+                <div class="action-body">
+                  <span class="action-title">{{ action.title }}</span>
+                  <span class="action-sub">{{ action.description }}</span>
+                </div>
+                <span class="action-arrow">›</span>
+              </a>
+              <div class="action-chip action-chip--off" *ngIf="action.disabled">
+                <span class="action-icon">{{ navIcons[i] }}</span>
+                <div class="action-body">
+                  <span class="action-title">{{ action.title }}</span>
+                  <span class="action-sub">{{ action.description }}</span>
+                </div>
+                <span class="coming-soon">Pronto</span>
+              </div>
+            </ng-container>
+          </div>
+        </section>
+
+        <!-- Activity feed -->
+        <section class="panel panel--compact">
+          <div class="panel-hdr">
+            <h2 class="panel-title">Actividad</h2>
+            <span class="badge-degraded" *ngIf="widgetState.activity.degraded && !widgetState.activity.loading">Estimado</span>
+          </div>
+
+          <div class="skeleton-block" *ngIf="widgetState.activity.loading"></div>
+
+          <div class="feed-list" *ngIf="!widgetState.activity.loading && !widgetState.activity.empty">
+            <div class="feed-item" *ngFor="let ev of activityFeed">
+              <span class="feed-dot" [ngClass]="'feed-dot--' + ev.severity"></span>
+              <div class="feed-body">
+                <p class="feed-title">{{ ev.title }}</p>
+                <p class="feed-detail">{{ ev.detail }}</p>
+                <p class="feed-time">
+                  <ng-container *ngIf="ev.occurredAt">{{ ev.occurredAt | date:'dd/MM HH:mm' }}</ng-container>
+                  <ng-container *ngIf="!ev.occurredAt">Sin marca</ng-container>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="!widgetState.activity.loading && widgetState.activity.empty">Sin actividad.</div>
+        </section>
+
+        <!-- Policies -->
+        <section class="panel panel--compact" *ngIf="policyItems.length > 0">
+          <div class="panel-hdr">
+            <h2 class="panel-title">Políticas activas</h2>
+            <a routerLink="/policies" class="btn-ghost btn-ghost--sm">Ver →</a>
+          </div>
+          <div class="policy-list">
+            <div class="policy-row" *ngFor="let pol of policyItems">
+              <div class="policy-row-meta">
+                <span class="policy-name">{{ pol.name }}</span>
+                <span class="policy-count">{{ pol.activeInstances }}/{{ pol.totalInstances }}</span>
+              </div>
+              <div class="policy-bar-track">
+                <div class="policy-bar-fill"
+                     [style.width]="pol.totalInstances > 0 ? ((pol.activeInstances / pol.totalInstances) * 100) + '%' : '0%'">
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+    </div>
+
+  </ng-container>
+</div>

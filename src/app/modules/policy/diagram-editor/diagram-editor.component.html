@@ -1,0 +1,58 @@
+<div class="editor-layout">
+  <!-- Toolbar -->
+  <div class="editor-toolbar">
+    <div class="toolbar-left">
+      <button mat-icon-button (click)="goBack()" matTooltip="Volver a políticas">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <input class="policy-name-input" [(ngModel)]="policyName" placeholder="Nombre del proceso...">
+      <span class="status-chip" [class.published]="policy?.status === 'PUBLISHED'">
+        {{ policy?.status || 'NUEVO' }}
+      </span>
+    </div>
+    <div class="toolbar-right">
+      <button mat-stroked-button (click)="saveDraft()" [disabled]="saving">
+        {{ saving ? 'Guardando...' : '💾 Guardar borrador' }}
+      </button>
+      <button mat-raised-button color="primary" (click)="publish()" [disabled]="!policy?.id">
+        ✅ Publicar
+      </button>
+      <button mat-icon-button (click)="toggleAiPanel()" matTooltip="Asistente IA" [color]="showAiPanel ? 'primary' : ''">
+        <mat-icon>auto_awesome</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas + Paneles laterales -->
+  <div class="editor-body">
+    <div #bpmnCanvas class="bpmn-canvas"></div>
+
+    <!-- Panel IA -->
+    <!-- Panel IA -->
+    @if (showAiPanel) {
+      <div class="side-panel ai-panel">
+        <app-ai-prompt-panel
+          *ngIf="showAiPanel"
+          [policy]="policy"
+          (diagramGenerated)="onDiagramGenerated($event)"
+          (diagramRefined)="onDiagramRefined($event)">
+        </app-ai-prompt-panel>
+      </div>
+    }
+
+    <!-- Panel de propiedades del nodo -->
+    @if (selectedElement) {
+      <div class="side-panel props-panel">
+        <app-node-properties-panel
+          *ngIf="selectedElement"
+          [element]="selectedElement"
+          [nodeData]="getNodeData(selectedElement?.id)"
+          (nodeDataChanged)="onNodeDataChanged($event)">
+        </app-node-properties-panel>
+        <button mat-button (click)="selectedElement = null" style="margin-top: 8px; width: 100%;">
+           Cerrar propiedades
+        </button>
+      </div>
+    }
+  </div>
+</div>

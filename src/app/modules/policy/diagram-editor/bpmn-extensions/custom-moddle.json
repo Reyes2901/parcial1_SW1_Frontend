@@ -1,0 +1,32 @@
+{
+  "name": "Custom",
+  "prefix": "custom",
+  "uri": "http://custom/ns",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "types": [],
+  "associations": [],
+  "emumerations": [],
+  "properties": {},
+  "extends": {
+    "bpmn:ParallelGateway": {
+      "properties": [
+        {
+          "name": "forkJoinType",
+          "type": "String",
+          "isAttr": true
+        }
+      ]
+    },
+    "bpmn:Lane": {
+      "properties": [
+        {
+          "name": "departmentId",
+          "type": "String",
+          "isAttr": true
+        }
+      ]
+    }
+  }
+}

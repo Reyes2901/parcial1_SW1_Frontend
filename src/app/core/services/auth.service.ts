@@ -29,9 +29,9 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token') 
-        || localStorage.getItem('jwt')
-        || sessionStorage.getItem('token');
+    return localStorage.getItem('jwt')
+        || sessionStorage.getItem('token')
+        || localStorage.getItem('token');
   }
 
   getCurrentUser(): Observable<any> {
@@ -39,8 +39,17 @@ export class AuthService {
   }
 
   hasRole(role: string): boolean {
-    const user = this.currentUser$.getValue();
-    return user?.roles?.includes(role) ?? false;
+      const user = this.currentUser$.getValue();
+      console.log('🔍 Verificando rol:', role, 'Usuario:', user);
+      // El backend devuelve "role" en singular en el JWT
+      if (user?.role === role) {
+          return true;
+      }
+      // Por si acaso también buscar en plural
+      if (user?.roles?.includes(role)) {
+          return true;
+      }
+      return false;
   }
 
   isLoggedIn(): boolean {
@@ -49,10 +58,17 @@ export class AuthService {
 
   private decodeAndSetUser(token: string): void {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.currentUser$.next(payload);
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('✅ JWT decodificado:', payload);
+        
+        // Normalizar: si viene "role" en singular, crear también "roles" en plural
+        if (payload.role && !payload.roles) {
+            payload.roles = [payload.role];
+        }
+        
+        this.currentUser$.next(payload);
     } catch {
-      this.logout();
+        this.logout();
     }
-  }
+}
 }
