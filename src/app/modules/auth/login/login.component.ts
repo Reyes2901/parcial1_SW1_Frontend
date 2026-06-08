@@ -24,25 +24,25 @@ import { AuthService } from '../../../core/services/auth.service';
         <h2>Iniciar sesión</h2>
         
         <form [formGroup]="form" (ngSubmit)="login()">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Usuario</mat-label>
-            <input matInput formControlName="email" placeholder="Ingrese su usuario" type="text">
+          <mat-form-field appearance="outline" class="full-width custom-inputs">
+            <mat-label>Correo Electrónico</mat-label>
+            <input matInput formControlName="email" placeholder="Ingrese su correo" type="text" autocomplete="username">
             @if (form.get('email')?.invalid && form.get('email')?.touched) {
-              <mat-error>Usuario requerido</mat-error>
+              <mat-error>El correo es requerido</mat-error>
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline" class="full-width custom-inputs">
             <mat-label>Contraseña</mat-label>
-            <input matInput formControlName="password" placeholder="Ingrese su contraseña" type="password">
+            <input matInput formControlName="password" placeholder="Ingrese su contraseña" type="password" autocomplete="current-password">
             @if (form.get('password')?.invalid && form.get('password')?.touched) {
               <mat-error>Contraseña requerida</mat-error>
             }
           </mat-form-field>
 
-          <button mat-raised-button color="primary" type="submit" 
-                  [disabled]="form.invalid || loading" class="full-width">
-            {{ loading ? 'Ingresando...' : 'Ingresar' }}
+          <button mat-flat-button type="submit" 
+                  [disabled]="form.invalid || loading" class="full-width login-btn">
+            {{ loading ? 'Ingresando...' : 'Login' }}
           </button>
 
           @if (error) {
@@ -58,22 +58,58 @@ import { AuthService } from '../../../core/services/auth.service';
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-color: #2e7d32;
     }
     .login-card {
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 2.5rem 2rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
       width: 100%;
       max-width: 400px;
     }
-    h1 { text-align: center; color: #3f51b5; margin-bottom: 0.5rem; }
-    h2 { text-align: center; color: #666; font-weight: 300; margin-bottom: 2rem; }
-    .full-width { width: 100%; margin-bottom: 1rem; }
+    h1 { text-align: center; color: #2e7d32; margin-bottom: 0.5rem; font-weight: bold; }
+    h2 { text-align: center; color: #555; font-weight: 300; margin-bottom: 2rem; font-size: 1.2rem; }
+    .full-width { width: 100%; margin-bottom: 1.2rem; }
+    
+    /* Botón con bordes redondeados al 10% */
+    .login-btn {
+      background-color: #2e7d32 !important;
+      color: white !important;
+      padding: 1.5rem 0 !important;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 25px !important;
+    }
+    .login-btn[disabled] {
+      background-color: #cccccc !important;
+      color: #666666 !important;
+    }
+    
+    /* Inputs con bordes redondeados al 10% */
+    ::ng-deep .custom-inputs .mat-mdc-text-field-wrapper {
+      border-radius: 25px !important;
+    }
+    ::ng-deep .custom-inputs .mdc-notched-outline-leading {
+      border-radius: 25px 0 0 25px !important;
+      width: 20px !important;
+    }
+    ::ng-deep .custom-inputs .mdc-notched-outline-trailing {
+      border-radius: 0 25px 25px 0 !important;
+    }
+    
+    ::ng-deep .mat-form-field-appearance-outline.mat-focused .mdc-notched-outline__border {
+      border-color: #2e7d32 !important;
+      border-width: 2px !important;
+    }
+    ::ng-deep .mat-form-field-appearance-outline.mat-focused .mat-mdc-form-field-label {
+      color: #2e7d32 !important;
+    }
+
     .error-message {
-      color: #f44336; text-align: center; margin-top: 1rem;
-      padding: 0.5rem; background: #ffebee; border-radius: 4px;
+      color: #d32f2f; text-align: center; margin-top: 1rem;
+      padding: 0.6rem; background: #ffebee; border-radius: 8px;
+      font-size: 0.9rem; border: 1px solid #ffcdd2;
     }
   `]
 })
@@ -97,9 +133,9 @@ export class LoginComponent {
     if (this.form.invalid) return;
     this.loading = true;
     this.error = '';
-    const { email, password } = this.form.value;
-
-    this.auth.login(email!, password!).subscribe({
+    
+    // Enviamos el objeto completo del formulario al servicio
+    this.auth.login(this.form.value.email, this.form.value.password).subscribe({
       next: () => {
         this.auth.hasRole('ADMIN') 
           ? this.router.navigate(['/dashboard'])

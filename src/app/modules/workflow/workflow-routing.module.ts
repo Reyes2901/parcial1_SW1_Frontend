@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { SeguimientoAdminComponent } from './seguimiento-admin/seguimiento-admin.component';
 import { ClientRequestComponent } from './client-request/client-request.component';
 import { ClientTrackingComponent } from './client-tracking/client-tracking.component';
+import { WorkflowDetailComponent } from './workflow-detail/workflow-detail.component';
 
 const routes: Routes = [
   { path: '', component: SeguimientoAdminComponent },
@@ -14,6 +15,8 @@ const routes: Routes = [
   },
   { path: 'nueva-solicitud', component: ClientRequestComponent },
   { path: 'mis-solicitudes', component: ClientTrackingComponent },
+  // Debe ir al final para no ensombrecer las rutas estáticas anteriores.
+  { path: ':instanceId', component: WorkflowDetailComponent },
 ];
 
 @NgModule({

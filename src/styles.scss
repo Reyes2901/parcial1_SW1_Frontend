@@ -1,1 +1,23 @@
 /* You can add global styles to this file, and also import other style files */
+/* Estilos globales para las ventanas de Nuevo y Editar Departamento */
+.custom-rounded-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
+    border-radius: 10px !important;
+    padding: 8px !important;
+  }
+  
+  .custom-rounded-dialog .mat-mdc-text-field-wrapper {
+    background-color: #f0fdf4 !important;
+    border-radius: 10px !important;
+  }
+  
+  .custom-rounded-dialog .mdc-notched-outline__border {
+    border-color: #bbf7d0 !important;
+  }
+  
+  .custom-rounded-dialog .mat-focused .mdc-notched-outline__border {
+    border-color: #215524 !important;
+  }
+  
+  .custom-rounded-dialog button.mat-mdc-button-base {
+    border-radius: 10px !important;
+  }

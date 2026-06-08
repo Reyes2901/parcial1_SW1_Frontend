@@ -104,6 +104,11 @@ interface InstanceView {
             <div class="no-depts" *ngIf="inst.departments.length === 0">
               Sin departamentos registrados
             </div>
+            <div class="instance-footer">
+              <a class="btn-open" [routerLink]="['/workflow', inst.instanceId]">
+                Abrir trámite →
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -406,6 +411,24 @@ interface InstanceView {
       padding: 12px;
       text-align: center;
     }
+
+    .instance-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px;
+      border-top: 1px solid rgba(0,0,0,.06);
+    }
+    .btn-open {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #16a34a;
+      padding: 6px 14px;
+      border: 1px solid #16a34a;
+      border-radius: 8px;
+      transition: all .15s ease;
+    }
+    .btn-open:hover { background: #16a34a; color: #fff; }
 
     @media (max-width: 640px) {
       .seg-page { padding: 16px; }
